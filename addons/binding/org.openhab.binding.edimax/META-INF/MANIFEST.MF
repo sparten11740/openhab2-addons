@@ -1,0 +1,42 @@
+Manifest-Version: 1.0
+Bundle-ActivationPolicy: lazy
+Bundle-ClassPath: .
+Bundle-ManifestVersion: 2
+Bundle-Name: Edimax Binding
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-SymbolicName: org.openhab.binding.edimax;singleton:=true
+Bundle-Vendor: openHAB
+Bundle-Version: 2.3.0.qualifier
+Export-Package: 
+ org.openhab.binding.edimax,
+ org.openhab.binding.edimax.handler
+Import-Package: 
+ org.apache.commons.codec.binary;version="1.6.0",
+ org.apache.commons.httpclient;version="3.1.0",
+ org.apache.commons.httpclient.auth;version="3.1.0",
+ org.apache.commons.httpclient.methods;version="3.1.0",
+ org.apache.commons.httpclient.params;version="3.1.0",
+ org.apache.commons.lang;version="2.6.0",
+ org.apache.http.impl.auth;version="4.2.6",
+ org.eclipse.jdt.annotation;resolution:=optional,
+ org.eclipse.smarthome.config.core,
+ org.eclipse.smarthome.config.discovery,
+ org.eclipse.smarthome.core.library.types,
+ org.eclipse.smarthome.core.thing,
+ org.eclipse.smarthome.core.thing.binding,
+ org.eclipse.smarthome.core.thing.binding.builder,
+ org.eclipse.smarthome.core.thing.type,
+ org.eclipse.smarthome.core.types,
+ org.eclipse.smarthome.core.util,
+ org.openhab.binding.edimax,
+ org.openhab.binding.edimax.handler,
+ org.openhab.core.binding,
+ org.openhab.core.events,
+ org.openhab.core.items,
+ org.openhab.core.library.items,
+ org.openhab.core.library.types,
+ org.openhab.core.types,
+ org.openhab.model.item.binding,
+ org.osgi.framework;version="1.8.0",
+ org.slf4j
+Service-Component: OSGI-INF/*.xml

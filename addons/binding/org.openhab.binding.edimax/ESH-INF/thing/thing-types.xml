@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="edimax" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+	<thing-type id="sp1101w">
+		<label>Edimax Binding Thing</label>
+		<description>SP-1101W thing for Edimax Binding</description>
+
+		<channels>
+			<channel id="power" typeId="power" />
+		</channels>
+
+		<config-description>
+			<parameter name="ipAddress" type="text" required="true">
+				<label>IP Address</label>
+				<description>IP Address of the SP-1101W</description>
+			</parameter>
+            <parameter name="password" type="text" required="true">
+                <label>Password</label>
+                <description>Used for authentication with the plug</description>
+            </parameter>
+		</config-description>
+
+	</thing-type>
+
+	<channel-type id="power">
+		<item-type>Switch</item-type>
+		<label>Edimax Binding Channel</label>
+		<description>Power channel for Edimax Binding</description>
+	</channel-type>
+
+</thing:thing-descriptions>
