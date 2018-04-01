@@ -25,7 +25,7 @@ import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
-import org.openhab.binding.edimax.internal.EdimaxBindingConfiguration;
+import org.openhab.binding.edimax.config.EdimaxConfiguration;
 import org.openhab.binding.edimax.internal.HTTPSend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public class EdimaxHandler extends BaseThingHandler {
     private final Logger logger = LoggerFactory.getLogger(EdimaxHandler.class);
 
     @Nullable
-    private EdimaxBindingConfiguration config;
+    private EdimaxConfiguration config;
 
     @Nullable
     private HTTPSend httpSend;
@@ -69,7 +69,7 @@ public class EdimaxHandler extends BaseThingHandler {
                 if (command.toFullString().equals("REFRESH")) {
                     refreshItemState(CHANNEL_POWER);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                         String.format("Could not control device at IP address %s", config.getIpAddress()));
             }
@@ -83,7 +83,7 @@ public class EdimaxHandler extends BaseThingHandler {
      * @throws IOException
      */
 
-    public void refreshItemState(String channel) throws IOException {
+    public void refreshItemState(String channel) throws Exception {
         boolean isSwitchedOn = httpSend.getState(config.getIpAddress());
         System.err.println(channel + ": Updating state to " + (isSwitchedOn ? "ON" : "OFF"));
         updateState(channel, isSwitchedOn ? OnOffType.ON : OnOffType.OFF);
@@ -97,13 +97,13 @@ public class EdimaxHandler extends BaseThingHandler {
     @SuppressWarnings("null")
     @Override
     public void initialize() {
-        config = getConfigAs(EdimaxBindingConfiguration.class);
+        config = getConfigAs(EdimaxConfiguration.class);
         httpSend = new HTTPSend(config.getPassword());
 
         try {
             refreshItemState(CHANNEL_POWER);
             updateStatus(ThingStatus.ONLINE);
-        } catch (IOException e) {
+        } catch (Exception e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
         }
     }

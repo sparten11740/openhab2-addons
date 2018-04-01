@@ -10,32 +10,38 @@ package org.openhab.binding.edimax.internal;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.util.Collections;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthPolicy;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.Authentication;
+import org.eclipse.jetty.client.api.AuthenticationStore;
+import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.util.DigestAuthentication;
+import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.http.HttpMethod;
+import org.eclipse.jetty.http.HttpStatus;
 import org.openhab.binding.edimax.internal.commands.GetCurrent;
 import org.openhab.binding.edimax.internal.commands.GetMAC;
 import org.openhab.binding.edimax.internal.commands.GetPower;
 import org.openhab.binding.edimax.internal.commands.GetState;
 import org.openhab.binding.edimax.internal.commands.SetState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Sends commands and returns responses for the edimax device, using it's http
  * interface.
  *
  * @author Heinz
+ * @author JWD - replaced apache http client with jetty
  *
  */
 public class HTTPSend {
 
+    private final static Logger logger = LoggerFactory.getLogger(HTTPSend.class);
+
+    private static final int TIMEOUT = 5000;
     public static final String XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF8\"?>\r\n";
 
     private static final String defaultUser = "admin";
@@ -65,7 +71,7 @@ public class HTTPSend {
      * @return
      * @throws IOException
      */
-    public Boolean switchState(String anIp, Boolean newState) throws IOException {
+    public Boolean switchState(String anIp, Boolean newState) throws Exception {
         String completeUrl = completeURL(anIp);
         ConnectionInformation ci = new ConnectionInformation(defaultUser, password, completeUrl, PORT);
 
@@ -80,7 +86,7 @@ public class HTTPSend {
      * @return
      * @throws IOException
      */
-    public Boolean getState(String anIp) throws IOException {
+    public Boolean getState(String anIp) throws Exception {
         String completeUrl = completeURL(anIp);
         ConnectionInformation ci = new ConnectionInformation(defaultUser, password, completeUrl, PORT);
 
@@ -95,7 +101,7 @@ public class HTTPSend {
      * @return
      * @throws IOException
      */
-    public String getMAC(String anIp) throws IOException {
+    public String getMAC(String anIp) throws Exception {
         String completeUrl = completeURL(anIp);
         ConnectionInformation ci = new ConnectionInformation(defaultUser, password, completeUrl, PORT);
 
@@ -110,7 +116,7 @@ public class HTTPSend {
      * @return
      * @throws IOException
      */
-    public BigDecimal getCurrent(String anIp) throws IOException {
+    public BigDecimal getCurrent(String anIp) throws Exception {
         String completeUrl = completeURL(anIp);
         ConnectionInformation ci = new ConnectionInformation(defaultUser, password, completeUrl, PORT);
 
@@ -123,12 +129,13 @@ public class HTTPSend {
      *
      * @param anIp
      * @return
+     * @throws Exception
      * @throws IOExceptionif
      *             (mac != null) { // found a device! Device d = new Device();
      *             d.ip = portScanUsage.getIp(); d.mac = mac; discovered.add(d);
      *             }
      */
-    public BigDecimal getPower(String anIp) throws IOException {
+    public BigDecimal getPower(String anIp) throws Exception {
         String completeUrl = completeURL(anIp);
         ConnectionInformation ci = new ConnectionInformation(defaultUser, password, completeUrl, PORT);
 
@@ -136,35 +143,37 @@ public class HTTPSend {
         return getC.executeCommand(ci);
     }
 
-    public static String executePost(String targetURL, int targetPort, String targetURlPost, String data,
-            String username, String password) throws IOException {
+    public static String post(String targetURL, int targetPort, String targetURlPost, String data, String username,
+            String password) throws Exception {
+
         String complete = targetURL + ":" + targetPort + "/" + targetURlPost;
 
-        HttpURLConnection connection = null;
-        try {
+        HttpClient client = new HttpClient();
+        client.start();
 
-            HttpClient client = new HttpClient();
-            Credentials creds = new UsernamePasswordCredentials(username, password);
-            client.getState().setCredentials(AuthScope.ANY, creds);
-            client.getParams().setAuthenticationPreemptive(true);
-            PostMethod post = new PostMethod(complete);
-            post.setDoAuthentication(true);
-            HttpMethodParams params = post.getParams();
-            params.setParameter(AuthPolicy.AUTH_SCHEME_PRIORITY, Collections.singleton(AuthPolicy.DIGEST));
-            post.setRequestHeader("Connection", "Keep-Alive");
-            post.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            post.setRequestHeader("Content-Length", Integer.toString(data.getBytes().length));
-            ByteArrayRequestEntity requestEntity = new ByteArrayRequestEntity(data.getBytes());
+        AuthenticationStore a = client.getAuthenticationStore();
+        a.addAuthentication(new DigestAuthentication(new URI(complete), Authentication.ANY_REALM, username, password));
 
-            post.setRequestEntity(requestEntity);
-            client.executeMethod(post);
+        // @formatter:off
+        ContentResponse response = client.newRequest(complete)
+                .method(HttpMethod.POST)
+                .content(new StringContentProvider(data))
+                .timeout(TIMEOUT, TimeUnit.MILLISECONDS)
+                .send();
 
-            return post.getResponseBodyAsString();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
+
+        int statusCode = response.getStatus();
+
+        if (statusCode == HttpStatus.UNAUTHORIZED_401) {
+            String statusLine = response.getStatus() + " " + response.getReason();
+            logger.error("Received '{}' from server", statusLine);
         }
-    }
 
+        if (statusCode != HttpStatus.OK_200) {
+            String statusLine = response.getStatus() + " " + response.getReason();
+            logger.error("HTTP POST method failed: {}", statusLine);
+        }
+
+        return response.getContentAsString();
+    }
 }
